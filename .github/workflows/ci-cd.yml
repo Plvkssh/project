@@ -27,26 +27,38 @@ jobs:
       - name: Run Tests
         run: mvn test
 
-  deploy:
-    name: Deploy to Heroku
-on:
-  push:
-    branches:
-      - main
-
-jobs:
-  deploy:
-    name: Deploy to Heroku
+  build:
+    name: Build Project
     runs-on: ubuntu-latest
+    needs: test
+
     steps:
-      - name: Checkout Code
+      - name: Checkout Repo
         uses: actions/checkout@v3
 
-      - name: Add Heroku Git Remote
-        run: git remote add heroku https://git.heroku.com/${{ secrets.HEROKU_APP_NAME }}.git
-
-      - name: Deploy to Heroku
-        uses: akhileshns/heroku-deploy@v3.12.12
+      - name: Setup Java
+        uses: actions/setup-java@v3
         with:
-          heroku_api_key: ${{ secrets.HEROKU_API_KEY }}
-          heroku_app_name: ${{ secrets.HEROKU_APP_NAME }}
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Build Project
+        run: mvn package
+
+      - name: Copy Artifacts
+        run: mkdir -p build_output && cp target/*.jar build_output/
+
+  deploy:
+    name: Deploy to GitHub Pages
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./build_output

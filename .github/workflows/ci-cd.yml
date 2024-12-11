@@ -9,11 +9,7 @@ on:
 jobs:
   test:
     name: Build and Test Java Project
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        java-version: ['17']
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Repo
@@ -23,13 +19,10 @@ jobs:
         uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
-          java-version: ${{ matrix.java-version }}
+          java-version: '17'
 
       - name: Install Dependencies (Maven)
         run: mvn install --batch-mode
-
-      - name: Compile Project
-        run: mvn compile
 
       - name: Run Tests
         run: mvn test
@@ -38,13 +31,17 @@ jobs:
     name: Deploy to Heroku
     needs: test
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
+
+      - name: Add Heroku Git Remote
+        run: git remote add heroku https://git.heroku.com/${{ secrets.HEROKU_APP_NAME }}.git
 
       - name: Deploy Application to Heroku
         uses: akhileshns/heroku-deploy@v3.12.12
         with:
           heroku_api_key: ${{ secrets.HEROKU_API_KEY }}
           heroku_app_name: ${{ secrets.HEROKU_APP_NAME }}
-          heroku_email: your_email@example.com
+          branch: main

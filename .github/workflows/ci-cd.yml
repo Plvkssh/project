@@ -1,35 +1,50 @@
-   name: Java CI/CD Pipeline
+name: Java CI/CD Workflow
 
-   on:
-     push:
-       branches:
-         - main
-     pull_request:
+on:
+  push:
+    branches:
+      - main
+  pull_request:
 
-   jobs:
-     test:
-       name: Build and Test Java Project
-       runs-on: ${{ matrix.os }}
-       strategy:
-         matrix:
-           os: [ubuntu-latest, windows-latest, macos-latest]
-           java-version: ['17']
+jobs:
+  test:
+    name: Build and Test Java Project
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        java-version: ['17']
 
-       steps:
-         - name: Checkout Repo
-           uses: actions/checkout@v3
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v3
 
-         - name: Setup Java
-           uses: actions/setup-java@v3
-           with:
-             distribution: 'temurin'
-             java-version: ${{ matrix.java-version }}
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: ${{ matrix.java-version }}
 
-         - name: Install Dependencies (Maven)
-           run: mvn install --batch-mode
+      - name: Install Dependencies (Maven)
+        run: mvn install --batch-mode
 
-         - name: Compile Project
-           run: mvn compile
+      - name: Compile Project
+        run: mvn compile
 
-         - name: Run Tests
-           run: mvn test
+      - name: Run Tests
+        run: mvn test
+
+  deploy:
+    name: Deploy to Heroku
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Deploy Application to Heroku
+        uses: akhileshns/heroku-deploy@v3.12.12
+        with:
+          heroku_api_key: ${{ secrets.HEROKU_API_KEY }}
+          heroku_app_name: ${{ secrets.HEROKU_APP_NAME }}
+          heroku_email: your_email@example.com

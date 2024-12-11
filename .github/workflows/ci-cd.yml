@@ -1,62 +1,46 @@
-name: CI/CD Pipeline
+ name: Java CI/CD Pipeline
 
-on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
+     on:
+       push:
+         branches:
+           - main
+       pull_request:
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
+     jobs:
+       test:
+         name: Build and Test Java Project
+         runs-on: ${{ matrix.os }}
+         strategy:
+           matrix:
+             os: [ubuntu-latest, windows-latest, macos-latest]
+             java-version: ['17']
 
-    steps:
-      # Проверяем репозиторий
-      - name: Checkout repository
-        uses: actions/checkout@v3
+         steps:
+           - name: Checkout Repo
+             uses: actions/checkout@v3
 
-      # Устанавливаем Node.js
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '16'
+           - name: Setup Java
+             uses: actions/setup-java@v3
+             with:
+               distribution: 'temurin'
+               java-version: ${{ matrix.java-version }}
 
-      # Устанавливаем зависимости
-      - name: Install dependencies
-        run: npm install
+           - name: Install Dependencies (Maven)
+             run: mvn install --batch-mode
 
-      # Сборка проекта
-      - name: Build the project
-        run: npm run build
+           - name: Compile Project
+             run: mvn compile
 
-      # Запуск тестов
-      - name: Run tests
-        run: npm test
+           - name: Run Tests
+             run: mvn test
 
-  deploy:
-    runs-on: ubuntu-latest
-    needs: build  # Запускать развертывание только после успешного завершения сборки
-
-    steps:
-      # Проверяем репозиторий
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      # Развертывание приложения через SSH
-      - name: Deploy on remote server
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_KEY }}
-          REMOTE_HOST: ${{ secrets.REMOTE_HOST }}
-          REMOTE_USER: ${{ secrets.REMOTE_USER }}
-        run: |
-          echo "${SSH_PRIVATE_KEY}" > private_key.pem
-          chmod 600 private_key.pem
-          ssh -i private_key.pem -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} << EOF
-            cd /path/to/your/project
-            git pull
-            npm install
-            pm2 restart all
-          EOF
-          rm -f private_key.pem
+       deploy:
+         name: Deploy Project
+         runs-on: ubuntu-latest
+         needs: test
+         steps:
+           - name: Deploy using SSH
+             run: |
+               ssh user@your-remote-host <<EOF
+               ./deploy-script.sh
+               EOF

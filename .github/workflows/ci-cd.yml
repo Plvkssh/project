@@ -29,20 +29,24 @@ jobs:
 
   deploy:
     name: Deploy to Heroku
-    needs: test
-    runs-on: ubuntu-latest
+on:
+  push:
+    branches:
+      - main
 
+jobs:
+  deploy:
+    name: Deploy to Heroku
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout Repository
+      - name: Checkout Code
         uses: actions/checkout@v3
 
       - name: Add Heroku Git Remote
         run: git remote add heroku https://git.heroku.com/${{ secrets.HEROKU_APP_NAME }}.git
 
-      - name: Deploy Application to Heroku
+      - name: Deploy to Heroku
         uses: akhileshns/heroku-deploy@v3.12.12
         with:
           heroku_api_key: ${{ secrets.HEROKU_API_KEY }}
           heroku_app_name: ${{ secrets.HEROKU_APP_NAME }}
-          branch: main
-          dontuseforce: 1 

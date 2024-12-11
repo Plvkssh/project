@@ -1,0 +1,62 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Проверяем репозиторий
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Устанавливаем Node.js
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+
+      # Устанавливаем зависимости
+      - name: Install dependencies
+        run: npm install
+
+      # Сборка проекта
+      - name: Build the project
+        run: npm run build
+
+      # Запуск тестов
+      - name: Run tests
+        run: npm test
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build  # Запускать развертывание только после успешного завершения сборки
+
+    steps:
+      # Проверяем репозиторий
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Развертывание приложения через SSH
+      - name: Deploy on remote server
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_KEY }}
+          REMOTE_HOST: ${{ secrets.REMOTE_HOST }}
+          REMOTE_USER: ${{ secrets.REMOTE_USER }}
+        run: |
+          echo "${SSH_PRIVATE_KEY}" > private_key.pem
+          chmod 600 private_key.pem
+          ssh -i private_key.pem -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} << EOF
+            cd /path/to/your/project
+            git pull
+            npm install
+            pm2 restart all
+          EOF
+          rm -f private_key.pem
